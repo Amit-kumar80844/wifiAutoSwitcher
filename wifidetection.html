@@ -1,10 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Network Switcher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            transition: background-color 0.3s ease;
+        }
+        .connection-card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+            0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .connection-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+            0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .wifi-icon, .hotspot-icon {
+            transition: all 0.3s ease;
+        }
+        .active-icon {
+            filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    </style>
 </head>
-<body>
-$END$
+<body class="min-h-screen flex items-center justify-center p-4 bg-gray-100">
+<div class="max-w-md w-full mx-auto">
+    <div class="connection-card bg-white rounded-xl p-8 text-center">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Auto Network Switcher</h1>
+        <p class="text-gray-600 mb-6">Automatically switches between WiFi and mobile hotspot for uninterrupted connectivity</p>
+
+        <div class="flex justify-center space-x-16 mb-8">
+            <div class="text-center">
+                <div id="wifi-icon" class="wifi-icon text-5xl mb-2 text-blue-500">
+                    <!-- WiFi Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
+                    </svg>
+                </div>
+                <p class="font-medium text-gray-700">WiFi</p>
+            </div>
+
+            <div class="text-center">
+                <div id="hotspot-icon" class="hotspot-icon text-5xl mb-2 text-purple-500">
+                    <!-- Hotspot Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <p class="font-medium text-gray-700">Mobile Hotspot</p>
+            </div>
+        </div>
+
+        <div id="status" class="p-3 rounded-lg bg-blue-100 text-blue-800 font-medium mb-6">
+            Checking connection status...
+        </div>
+
+        <div class="text-left bg-gray-50 p-4 rounded-lg mb-6">
+            <h3 class="font-semibold text-gray-800 mb-2">Last Status Changes:</h3>
+            <ul id="status-log" class="text-sm text-gray-600 space-y-1 max-h-32 overflow-y-auto">
+            </ul>
+        </div>
+
+        <div class="grid gap-2 sm:grid-cols-2">
+            <button id="settings-btn"
+                    class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200">
+                Open Windows Network Settings
+            </button>
+            <button id="refresh-btn"
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
+                Manual Check
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-4 text-center text-xs text-gray-500">
+        Note: Actual switching requires system-level permissions. This UI simulates detection and offers recommendations.
+    </div>
+</div>
+
+<script>
+    function logStatus(message) {
+        const logList = document.getElementById('status-log');
+        const timestamp = new Date().toLocaleTimeString();
+        const logItem = document.createElement('li');
+        logItem.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+        logList.prepend(logItem);
+
+        while (logList.children.length > 5) {
+            logList.removeChild(logList.lastChild);
+        }
+    }
+
+    function updateConnectionStatus(hasWifi) {
+        const statusElement = document.getElementById('status');
+        const wifiIcon = document.getElementById('wifi-icon');
+        const hotspotIcon = document.getElementById('hotspot-icon');
+
+        if (hasWifi) {
+            statusElement.textContent = "Connected to WiFi network";
+            statusElement.className = "p-3 rounded-lg bg-green-100 text-green-800 font-medium mb-6";
+            wifiIcon.classList.add('active-icon');
+            hotspotIcon.classList.remove('active-icon');
+            logStatus("WiFi connected - using WiFi network");
+        } else {
+            statusElement.textContent = "No WiFi available, using Mobile Hotspot";
+            statusElement.className = "p-3 rounded-lg bg-yellow-100 text-yellow-800 font-medium mb-6 pulse";
+            wifiIcon.classList.remove('active-icon');
+            hotspotIcon.classList.add('active-icon');
+            logStatus("WiFi disconnected - switched to Mobile Hotspot");
+        }
+    }
+
+    function checkConnection() {
+        const isOnline = navigator.onLine;
+        updateConnectionStatus(isOnline);
+    }
+
+    // Event Listeners
+    document.getElementById('settings-btn').addEventListener('click', function () {
+        alert("Open Windows Network Settings:\n\n1. Press Win + R\n2. Type 'ncpa.cpl' and hit Enter\n3. Right-click on the connection to enable/disable.\n\nNote: Actual control needs admin/system permissions.");
+    });
+
+    document.getElementById('refresh-btn').addEventListener('click', function () {
+        checkConnection();
+        logStatus("Manual connection check triggered");
+    });
+
+    window.addEventListener('online', () => {
+        logStatus("Browser went online");
+        updateConnectionStatus(true);
+    });
+
+    window.addEventListener('offline', () => {
+        logStatus("Browser went offline");
+        updateConnectionStatus(false);
+    });
+
+    // Initial and periodic checks
+    checkConnection();
+    setInterval(checkConnection, 5000);
+</script>
 </body>
 </html>
